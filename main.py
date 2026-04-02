@@ -15,12 +15,25 @@ print(matrix)
 
 # Funciones
 
+# Esta nos devuelve el sano
 def sano(matrix):
     return np.sum(matrix) == 0
 
-
+# esta nos devuelve el infectado
 def infectado(matrix):
     return np.sum(matrix) > 0
+
+# Esta infecta con su posicion
+def infectar_persona(matrix, x, y):
+    infectar = input("Infectar? ")
+    if infectar == "si":
+        matrix[x][y] = 1
+        print(matrix)
+    elif infectar == "no":
+        matrix[x][y] = 0
+        print(matrix)
+    else:
+        print("Opcion no valida")
 
 
 # Clases
@@ -38,20 +51,14 @@ class Sistema:
             return "Desconocido"
 
 
-infectar = input("Infectar? ")
-if infectar == "si":
-    matrix[0][0] = 1
-    print(matrix)
-elif infectar == "no":
-    matrix[0][0] = 0
-    print(matrix)
-else:
-    print("Opcion no valida")
 
 # Persona seran los elementos de la matriz, o sea 9
 class persona:
-    def __init__(self, estado):
+    def __init__(self, estado, matrix, x, y):
         self.estado = estado
+        self.matrix = matrix
+        self.x = x
+        self.y = y
 
     def infectar(self):
         self.estado = 1

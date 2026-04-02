@@ -4,54 +4,30 @@ mundo = None # Universo 0
 
 # 0 para sano, 1 para infectado, 2 para desconocido
 
-
-# Vecindarios ----------------------------------------
-
-#standard
-# matrix = np.array([[0, 0, 0],
-#                    [1, 0, 0],
-#                    [0, 0, 0]])
-
-
-# Alta probabilidad
-matrix_2 = np.array(
-                    [
-                    [1, 1, 0, 0, 0, 0, 0, 0, 0],
-                    [1, 1, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 0, 0],
-                    [0, 0, 0, 0, 0, 0, 0, 1, 1],
-                    [0, 0, 0, 0, 0, 0, 1, 1, 1]])
-
-#baja probabilidad
-matrix_3 = np.array([[0, 0, 0],
-                   [0, 0, 0],
-                   [0, 0, 1]])
-
-
-
-
 # Clases
 
+
+#Importante: el estado del mundo lo maneja la clase Mundo
+#Sin embargo el que decide cuando cambia el estado actualmente es el usuario
+# pero el plan es que lo maneje la clase Infeccion, que se encargara de
+# decidir cuando y como infectar a las personas, dependiendo de las
+# reglas que se le asignen a cada tipo de infeccion, por ejemplo,
+# un virus puede tener una probabilidad de infectar a los vecinos
+# cercanos, mientras que una bacteria puede tener una probabilidad de
+# infectar a cualquier persona en el mundo, sin importar su posicion.
+
+# Esquematicamente sucede lo siguiente:
+
+# Usuario -> Clase Infeccion -> Clase Mundo -> Cambia el estado del mundo, dependiendo de las reglas de infeccion asignadas a cada tipo de infeccion
+# Por ello debo desarrollar la clase Infeccion, que se encargara de
+# manejar las reglas de infeccion
 # Estados: 0 para sano, 1 para infectado, 2 para desconocido
 
 # Persona seran los elementos de la matriz, o sea 9
-class Persona:
-    def __init__(self, name: str, x: int, y: int, edad = None, estado = None):
-        self.name = "PACIENTE_0"
-        self.x = x
-        self.y = y
-        self.edad = edad
-        self.estado = estado
 
-class Infeccion:
-    def __init__(self, tipo: str, probabilidad: float):
-        self.tipo = tipo
-        self.probabilidad = probabilidad
+#Clase completada casi por completo, por ahora (salvo correciones)
 
+# Falta trabajar la 
 class Mundo:
     def __init__(self, x, y):
         self.matrix = np.zeros((x, y), dtype=int)
@@ -63,6 +39,10 @@ class Mundo:
 
     def contar_sanos(self) -> int:
         return self.matrix.size - np.sum(self.matrix)
+    
+    def obtener_infectados(self) -> list:
+        infectados = np.argwhere(self.matrix == 1)
+        return [tuple(pos) for pos in infectados]
 
     # Obtener vecinos
 
@@ -72,6 +52,7 @@ class Mundo:
             for j in range(max(0, y - 1), min(self.matrix.shape[1], y + 2)):
                 if (i, j) != (x, y):
                     vecinos.append((i, j))
+        print(f"Vecinos de ({x}, {y}): {vecinos}") # Debug, borrar mas tarde
         return vecinos
 
     # Vamos con los cambios de estado
@@ -97,7 +78,8 @@ class Mundo:
                 if self.matrix[x][y] == 1:
                     for i, j in self.obtener_vecinos(x, y):
                         matriz_nueva[i][j] = 1
-        return matriz_nueva
+        self.matrix = matriz_nueva
+        return self.matrix
     # Regla basada en probabilidad, si hay alguien al lado, hay una probabilidad x de probabilidad de infectar
 
     def simulacion_propagacion_probabilistica(self, probabilidad: float) -> np.ndarray:
@@ -114,6 +96,8 @@ class Mundo:
                         if np.random.rand() < probabilidad:
                             matriz_nueva[i][j] = 1
         return matriz_nueva
+    def mostrar(self):
+        print(self.matrix)
 
 
 # Definicion base de lo que intento hacer.
@@ -132,16 +116,53 @@ class Mundo:
 
 
 
+class Persona:
+    def __init__(self, name: str, x: int, y: int, edad = None, estado = None):
+        self.name = "PACIENTE_0"
+        self.x = x
+        self.y = y
+        self.edad = edad
+        self.estado = estado
+
+class Infeccion:
+    def __init__(self, probabilidad: float):
+        self.probabilidad = probabilidad
+    def ocurre_contagio(self) -> bool:
+        return np.random.rand() < self.probabilidad
+    def propagar(self, mundo: Mundo):
+        raise NotImplementedError("Este metodo debe ser implementado por las subclases de Infeccion") # siendo honestos no estoy seguro de como funciona esta clase
+                         
+# Pensamientos: para el atributo probabilidad necesito pasar las funciones que 
+# manejan las probabilidades del mundo, el tipo se le asignara una probabilidad
+# Tengo varios approaches 
+
+class Virus(Infeccion):
+    def propagar(self, mundo: Mundo):
+        nueva = mundo.matrix.copy()
+        for x, y in mundo.obtener_infectados():
+            for i, j in mundo.obtener_vecinos(x, y):
+                if mundo.matrix[i][j] == 0 and self.ocurre_contagio():
+                    nueva[i][j] = 1
+
+        mundo.matrix = nueva
+
+class Bacteria(Infeccion):
+    pass
+
+class Hongo(Infeccion):
+    pass
+
+
+
 
 
 
 def default_matrix():
-    mundo = Mundo(9, 9)
-    return mundo.matrix
+    return Mundo(9, 9)
 if mundo is None:
     mundo = default_matrix()
 
-print(f"Matriz por defecto: \n{mundo}")
+print(f"Matriz por defecto: \n{mundo.matrix}")
 
 # Funcion para lanzar agente infeccioso, que se encargara de infect
 
@@ -158,7 +179,8 @@ while True:
     2-) Ver total de enfermos y sanos
     3-) Simular propagacion
     4-) Salir
-
+    11-) Testing
+                 
                  -> """)
 
 
@@ -183,17 +205,32 @@ while True:
     elif menu == "2":
         print(f"Total de infectados: {mundo.contar_infectados()}")
         print(f"Total de sanos: {mundo.contar_sanos()}")
-    elif menu == "3":
-        tipo_propagacion = input("Elige el tipo de propagacion: 1) Vecino cercano, 2) Probabilistica -> ")
-        if tipo_propagacion == "1":
-            mundo_nuevo = mundo.simulacion_propagacion()
-        elif tipo_propagacion == "2":
-            probabilidad = float(input("Elige la probabilidad de infeccion (0-1) / Float valido: "))
-            mundo_nuevo = mundo.simulacion_propagacion_probabilistica(probabilidad)
-        print(mundo_nuevo)
+    # elif menu == "3":
+    #     tipo_propagacion = input("Elige el tipo de propagacion: 1) Vecino cercano, 2) Probabilistica -> ")
+    #     if tipo_propagacion == "1":
+    #         mundo_nuevo = mundo.simulacion_propagacion()
+    #     elif tipo_propagacion == "2":
+    #         probabilidad = float(input("Elige la probabilidad de infeccion (0-1) / Float valido: "))
+    #         mundo_nuevo = mundo.simulacion_propagacion_probabilistica(probabilidad)
+    #     print(mundo_nuevo)
     elif menu == "4":
         print("Saliendo...")
         break
+    # Ahora empezare a desarrollar el partado que empezara a
+    # interactuar con la clase de infeccion
+    elif menu == "5":
+        tipo_infeccion = input("""
+        Elige el tipo de infeccion:
+        1) Virus
+        2) Bacteria
+""") # Muy cambiable, pero sirve de base
+        if tipo_infeccion == "1":
+            pass
+    elif menu == "11":
+        infeccion = Virus(probabilidad=1.0)
+        infeccion.propagar(mundo)
+        mundo.mostrar()
+
     else:
         print("Opcion no valida")
 
