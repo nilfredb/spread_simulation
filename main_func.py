@@ -147,7 +147,15 @@ class Virus(Infeccion):
         mundo.matrix = nueva
 
 class Bacteria(Infeccion):
-    pass
+    def propagar(self, mundo: Mundo):
+        nueva = mundo.matrix.copy()
+        for x, y in mundo.obtener_infectados():
+            for i in range(mundo.matrix.shape[0]):
+                for j in range(mundo.matrix.shape[1]):
+                    if mundo.matrix[i][j] == 0 and self.ocurre_contagio():
+                        nueva[i][j] = 1
+
+        mundo.matrix = nueva
 
 class Hongo(Infeccion):
     pass
